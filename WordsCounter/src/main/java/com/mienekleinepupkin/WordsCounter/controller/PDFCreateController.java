@@ -74,7 +74,6 @@ public class PDFCreateController {
   }
 
   //Get a specific file
-  //404 error
   @RequestMapping(value = "/files/{file_name}", method = RequestMethod.GET)
   public ResponseEntity<?> getFile(
       @PathVariable("file_name") String fileName) {
