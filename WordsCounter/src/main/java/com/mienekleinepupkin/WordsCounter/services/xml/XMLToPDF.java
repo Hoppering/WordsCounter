@@ -2,6 +2,7 @@ package com.mienekleinepupkin.WordsCounter.services.xml;
 
 import com.mienekleinepupkin.WordsCounter.services.storage.FileStorageService;
 import java.io.File;
+import java.nio.file.Path;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;

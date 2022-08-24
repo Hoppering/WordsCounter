@@ -7,17 +7,17 @@ import com.mienekleinepupkin.WordsCounter.services.text.CounterText;
 import com.mienekleinepupkin.WordsCounter.services.text.TextReader;
 import com.mienekleinepupkin.WordsCounter.services.xml.XMLToPDF;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Map;
-import javax.servlet.http.HttpServletResponse;
 import javax.xml.transform.TransformerException;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.fop.apps.FOPException;
+import org.springframework.core.io.ByteArrayResource;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -31,9 +31,11 @@ public class PDFCreateController {
 
   //Collect all created reports and return all of them
   @RequestMapping(value = "/files", method = RequestMethod.GET)
-  public List<String> getAllFiles() throws IOException {
+  public ResponseEntity<?> getAllFiles() throws IOException {
     //Get all reports sort by last modified
-    return FileStorageService.getAllCreatedReports();
+    List<String> response = FileStorageService.getAllCreatedReports();
+    return ResponseEntity.ok()
+        .body(response);
   }
 
   //Get text and in the end create pdf document
@@ -65,26 +67,28 @@ public class PDFCreateController {
     DocumentPDF.convertToPDF(textWithoutExtension);
 
     //Delete all unused files sush as chart.svg, data.xml, received text
-    Files.deleteIfExists(Paths.get(FileStorageService.FILE_STORAGE_LOCATION + "\\"+"chart.svg"));
-    Files.deleteIfExists(Paths.get(FileStorageService.FILE_STORAGE_LOCATION + "\\"+ "data.xml"));
+    Files.deleteIfExists(Paths.get(FileStorageService.FILE_STORAGE_LOCATION + "\\" + "chart.svg"));
+    Files.deleteIfExists(Paths.get(FileStorageService.FILE_STORAGE_LOCATION + "\\" + "data.xml"));
     Files.deleteIfExists(Paths.get(FileStorageService.FILE_STORAGE_LOCATION + "\\" + fileName));
-
     return ResponseEntity.ok("File uploaded " + fileName + " successfully!");
   }
 
   //Get a specific file
+  //404 error
   @RequestMapping(value = "/files/{file_name}", method = RequestMethod.GET)
-  public void getFile(
-      @PathVariable("file_name") String fileName,
-      HttpServletResponse response) throws IOException {
+  public ResponseEntity<?> getFile(
+      @PathVariable("file_name") String fileName) {
     try {
-      // get your file as InputStream
+      // get your file as ByteArrayResource
       File file = new File(FileStorageService.FILE_STORAGE_LOCATION + "\\pdf\\" + fileName);
-      InputStream is = new FileInputStream(file);
+      Path path = Paths.get(file.getAbsolutePath());
+      ByteArrayResource resource = new ByteArrayResource(Files.readAllBytes(path));
+
       // copy it to response's OutputStream
-      org.apache.commons.io.IOUtils.copy(is, response.getOutputStream());
-      response.setStatus(200);
-      response.flushBuffer();
+      return ResponseEntity.ok()
+          .contentLength(file.length())
+          .contentType(MediaType.APPLICATION_PDF)
+          .body(resource);
     } catch (IOException ex) {
       System.out.printf("Error writing file to output stream. Filename was '{}'", fileName, ex);
       throw new RuntimeException("IOError writing file to output stream");
